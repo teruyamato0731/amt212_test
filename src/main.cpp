@@ -115,7 +115,7 @@ void uart_transmit(const uint8_t *send, const int len) {
 }
 template<int N>
 void uart_transmit(const uint8_t (&send)[N]) {
-  uart_transmit(send, N);
+  uart_transmit(send, sizeof(send));
 }
 bool uart_receive(void *buf, const int len, const std::chrono::milliseconds timeout) {
   auto now = timer.elapsed_time();
