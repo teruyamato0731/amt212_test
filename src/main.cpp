@@ -28,6 +28,14 @@ struct Amt21_C {
   uint16_t pos;
   uint16_t turns;
 
+  int get_pos() const {
+    return rotate * get_turns() + pos;
+  }
+  int16_t get_turns() const {
+    int16_t sign_bit = turns & 0x2000;
+    sign_bit = sign_bit << 2 | sign_bit << 1;
+    return sign_bit | turns;
+  }
   bool read_pos(const uint16_t msg) {
     bool res = is_valid(msg);
     if(res) pos = (msg & 0x3fff) >> 2;
@@ -90,7 +98,7 @@ int main() {
 
       amt.send_read_pos();
       amt.send_read_turns();
-      printf("% 4d % 4d ", amt.pos, amt.turns);
+      printf("% 4d % 4d % 6d % 4d ", amt.pos, amt.turns, amt.get_pos(), amt.get_turns());
 
       pre = now;
     }
