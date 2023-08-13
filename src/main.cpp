@@ -6,6 +6,9 @@
 
 // IO
 BufferedSerial pc{USBTX, USBRX, 115200};
+// 2Mbps-8-N-1
+BufferedSerial enc_bus{PB_6, PA_10, (int)2e6};
+DigitalOut de{PC_0};
 // CAN can{PA_11, PA_12, (int)1e6};
 // CAN can{PB_12, PB_13, (int)1e6};
 // CANMessage msg;
@@ -49,11 +52,33 @@ int main() {
   printf("\nsetup\n");
   timer.start();
   auto pre = timer.elapsed_time();
+  enc_bus.set_blocking(0);
   while(1) {
     // put your main code here, to run repeatedly:
     auto now = timer.elapsed_time();
     if(now - pre > 20ms) {
       printf("hoge\n");
+      enc_bus.sync();
+      uint8_t data = 0x54;
+      de = 1;
+      enc_bus.write(&data, sizeof(data));
+      wait_us(3);
+      de = 0;
+
+      if(enc_bus.readable()) {
+        uint8_t buf[2] = {};
+        auto p = buf;
+        while(p != buf + 2) {
+          if(enc_bus.read(p, 1) > 0)
+            ++p;
+          else
+            break;
+        }
+        for(auto e: buf) {
+          printf("%02x", e);
+        }
+      }
+
       pre = now;
     }
   }
