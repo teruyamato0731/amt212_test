@@ -115,8 +115,8 @@ bool uart_receive(void *buf, const int len, const std::chrono::milliseconds time
   uint8_t *p = reinterpret_cast<uint8_t *>(buf);
   const uint8_t *end = p + len;
   do {
-    if(enc_bus.read(p, 1) > 0) {
-      if(++p == end) return true;
+    if(enc_bus.read(p, 1) > 0 && ++p == end) {
+      return (wait_ns(275), true);
     }
     now = timer.elapsed_time();
   } while(now - pre < timeout);
