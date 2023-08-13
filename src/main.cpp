@@ -3,6 +3,12 @@
 // Const variable
 
 // Function prototype
+void uart_transmit(const uint8_t *send, const int len);
+template<int N>
+void uart_transmit(const uint8_t (&send)[N]);
+bool uart_receive(void *buf, const int len, const std::chrono::milliseconds timeout);
+template<int N>
+bool uart_receive(uint8_t (&buf)[N], const std::chrono::milliseconds timeout);
 
 // IO
 BufferedSerial pc{USBTX, USBRX, 115200};
@@ -58,25 +64,14 @@ int main() {
     auto now = timer.elapsed_time();
     if(now - pre > 20ms) {
       printf("hoge\n");
-      enc_bus.sync();
-      uint8_t data = 0x54;
-      de = 1;
-      enc_bus.write(&data, sizeof(data));
-      wait_us(3);
-      de = 0;
+      uart_transmit({0x54});
 
-      if(enc_bus.readable()) {
-        uint8_t buf[2] = {};
-        auto p = buf;
-        while(p != buf + 2) {
-          if(enc_bus.read(p, 1) > 0)
-            ++p;
-          else
-            break;
-        }
+      if(uint8_t buf[2] = {}; uart_receive(buf, 10ms)) {
         for(auto e: buf) {
           printf("%02x", e);
         }
+      } else {
+        printf("    ");
       }
 
       pre = now;
@@ -85,3 +80,31 @@ int main() {
 }
 
 // Function definition
+void uart_transmit(const uint8_t *send, const int len) {
+  de = 1;
+  enc_bus.sync();
+  enc_bus.write(send, len);
+  wait_us(3);
+  de = 0;
+}
+template<int N>
+void uart_transmit(const uint8_t (&send)[N]) {
+  uart_transmit(send, N);
+}
+bool uart_receive(void *buf, const int len, const std::chrono::milliseconds timeout) {
+  auto now = timer.elapsed_time();
+  auto pre = now;
+  uint8_t *p = reinterpret_cast<uint8_t *>(buf);
+  const uint8_t *end = p + len;
+  do {
+    if(enc_bus.read(p, 1) > 0) {
+      if(++p == end) return true;
+    }
+    now = timer.elapsed_time();
+  } while(now - pre < timeout);
+  return false;
+}
+template<int N>
+bool uart_receive(uint8_t (&buf)[N], const std::chrono::milliseconds timeout) {
+  return uart_receive(buf, sizeof(buf), timeout);
+}
