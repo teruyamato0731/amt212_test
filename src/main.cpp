@@ -51,6 +51,28 @@ struct Amt21_C {
 };
 
 // Global variable
+struct MyAmt21_C : Amt21_C {
+  // request
+  bool send_read_pos() {
+    uart_transmit({address});
+    if(uint16_t receive; uart_receive(&receive, sizeof(receive), 10ms)) {
+      read_pos(receive);
+      return true;
+    }
+    return false;
+  }
+  bool send_read_turns() {
+    uart_transmit({address + 1});
+    if(uint16_t receive; uart_receive(&receive, sizeof(receive), 10ms)) {
+      read_turns(receive);
+      return true;
+    }
+    return false;
+  }
+  void send_reset() {
+    uart_transmit({address + 2, 0x75});
+  }
+} amt{0x54};
 
 /// @brief The application entry point.
 int main() {
@@ -59,20 +81,16 @@ int main() {
   timer.start();
   auto pre = timer.elapsed_time();
   enc_bus.set_blocking(0);
+  amt.send_reset();
   while(1) {
     // put your main code here, to run repeatedly:
     auto now = timer.elapsed_time();
     if(now - pre > 20ms) {
       printf("hoge\n");
-      uart_transmit({0x54});
 
-      if(uint8_t buf[2] = {}; uart_receive(buf, 10ms)) {
-        for(auto e: buf) {
-          printf("%02x", e);
-        }
-      } else {
-        printf("    ");
-      }
+      amt.send_read_pos();
+      amt.send_read_turns();
+      printf("% 4d % 4d ", amt.pos, amt.turns);
 
       pre = now;
     }
