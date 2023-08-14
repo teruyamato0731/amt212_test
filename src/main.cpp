@@ -63,7 +63,7 @@ int main() {
 
       amt.send_read_pos();
       amt.send_read_turns();
-      printf("% 4d % 4d % 6d % 4d ", amt.pos, amt.turns, amt.get_pos(), amt.get_turns());
+      printf("% 4d % 5d % 6d % 4d ", amt.pos, amt.turns, amt.get_pos(), amt.get_turns());
 
       pre = now;
     }
