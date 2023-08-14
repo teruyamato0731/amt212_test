@@ -10,7 +10,7 @@ struct Rs485 {
   }
   void uart_transmit(const uint8_t *send, const int len) {
     de_ = 1;
-    bus_.sync();
+    flush();
     bus_.write(send, len);
     wait_us(3);
     de_ = 0;
@@ -35,6 +35,10 @@ struct Rs485 {
     return uart_receive(buf, sizeof(buf), timeout);
   }
  private:
+  void flush() {
+    uint8_t buf;
+    while(bus_.read(&buf, 1) > 0) {}
+  }
   BufferedSerial bus_;
   DigitalOut de_;
 };
