@@ -9,8 +9,12 @@ services:
       - ..:/workspaces/amt212_test:cached
       # device access
       - /dev:/dev
+      - pio-cache:/home/vscode/.platformio
     working_dir: /workspaces/amt212_test
     tty: true
-    command: sleep inf
+    command: bash -c "sudo chown -R vscode:vscode /home/vscode/.platformio && sleep inf"
     # device access
     privileged: true
+
+volumes:
+  pio-cache:
