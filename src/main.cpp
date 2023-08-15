@@ -39,7 +39,7 @@ struct : Amt21 {
   void send_reset() {
     rs485.uart_transmit({address + 2, 0x75});
   }
-} amt{0x54};
+} amt[] = {{0x50}, {0x54}, {0x58}, {0x5C}};
 
 /// @brief The application entry point.
 int main() {
@@ -47,16 +47,18 @@ int main() {
   printf("\nsetup\n");
   timer.start();
   auto pre = timer.elapsed_time();
-  amt.send_reset();
+  for(auto& e: amt) e.send_reset();
   while(1) {
     // put your main code here, to run repeatedly:
     auto now = timer.elapsed_time();
     if(now - pre > 20ms) {
       printf("hoge\n");
 
-      amt.send_read_pos();
-      amt.send_read_turns();
-      printf("% 4d % 5d % 6d % 4d ", amt.pos, amt.turns, amt.get_pos(), amt.get_turns());
+      for(auto& e: amt) {
+        e.send_read_pos();
+        e.send_read_turns();
+        printf("% 6d ", e.get_pos());
+      }
 
       pre = now;
     }
