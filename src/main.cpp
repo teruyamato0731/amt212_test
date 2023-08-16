@@ -1,6 +1,5 @@
 #include <mbed.h>
 
-#include "Amt21.h"
 #include "Rs485.h"
 
 // Const variable
@@ -18,26 +17,41 @@ Timer timer;
 // Struct definition
 
 // Global variable
-struct : Amt21 {
-  // request
-  bool send_read_pos() {
+struct Amt21 {
+  static constexpr int rotate = 4096;
+
+  uint8_t address;
+  int32_t pos;
+  uint16_t pre_pos;
+
+  bool request_pos() {
     rs485.uart_transmit({address});
-    if(uint16_t receive; rs485.uart_receive(&receive, sizeof(receive), 10ms)) {
-      read_pos(receive);
+    if(uint16_t now_pos; rs485.uart_receive(&now_pos, sizeof(now_pos), 10ms) && is_valid(now_pos)) {
+      now_pos = (now_pos & 0x3fff) >> 2;
+      int16_t diff = now_pos - pre_pos;
+      if(diff > rotate / 2) {
+        diff -= rotate;
+      } else if(diff < -rotate / 2) {
+        diff += rotate;
+      }
+      pos += diff;
+      pre_pos = now_pos;
       return true;
     }
     return false;
   }
-  bool send_read_turns() {
-    rs485.uart_transmit({address + 1});
-    if(uint16_t receive; rs485.uart_receive(&receive, sizeof(receive), 10ms)) {
-      read_turns(receive);
-      return true;
-    }
-    return false;
-  }
-  void send_reset() {
+  void request_reset() {
     rs485.uart_transmit({address + 2, 0x75});
+  }
+  static bool is_valid(uint16_t raw_data) {
+    bool k1 = raw_data >> 15;
+    bool k0 = raw_data >> 14 & 1;
+    raw_data <<= 2;
+    do {
+      k1 ^= raw_data & 0x8000;          // even
+      k0 ^= (raw_data <<= 1) & 0x8000;  // odd
+    } while(raw_data <<= 1);
+    return k0 && k1;
   }
 } amt[] = {{0x50}, {0x54}, {0x58}, {0x5C}};
 
@@ -47,7 +61,6 @@ int main() {
   printf("\nsetup\n");
   timer.start();
   auto pre = timer.elapsed_time();
-  for(auto& e: amt) e.send_reset();
   while(1) {
     // put your main code here, to run repeatedly:
     auto now = timer.elapsed_time();
@@ -55,9 +68,8 @@ int main() {
       printf("hoge\n");
 
       for(auto& e: amt) {
-        e.send_read_pos();
-        e.send_read_turns();
-        printf("% 6d ", e.get_pos());
+        e.request_pos();
+        printf("% 12ld ", e.pos);
       }
 
       pre = now;
